@@ -486,7 +486,17 @@ public class AutoValueGsonExtension extends AutoValueExtension {
         readMethod.addCode("case $S:\n", alternate);
       }
       readMethod.beginControlFlow("case $S:", prop.serializedName());
-      readMethod.addStatement("$N = $N.read($N)", field, adapters.get(prop), jsonReader);
+      if (field.type.isPrimitive()) {
+        readMethod.beginControlFlow("if ($N.peek() == $T.NULL)", jsonReader, token);
+        readMethod.addStatement("$N.nextNull()", jsonReader);
+        String defaultPrimitiveValue = getDefaultPrimitiveValue(field.type);
+        readMethod.addStatement("$N = $L", field.name, defaultPrimitiveValue);
+        readMethod.nextControlFlow("else");
+        readMethod.addStatement("$N = $N.read($N)", field, adapters.get(prop), jsonReader);
+        readMethod.endControlFlow();
+      } else {
+        readMethod.addStatement("$N = $N.read($N)", field, adapters.get(prop), jsonReader);
+      }
       readMethod.addStatement("break");
       readMethod.endControlFlow();
     }
